@@ -83,8 +83,5 @@ authenticate() ->
     websocket_client:cast(self(), {text, pb_client:encode_msg(#'ProtobufClient.ClientMessage'{body={apiAuthentication, Msg}})}).
 
 
-get_creds() ->
-    {{api, "02902WOKNKEJN01DV18Z"},
-     {secret, "UIO/BJfSyRyGN/zfPdag9AVVzWRHxQ4mYime6FSo"}}.
 
 
