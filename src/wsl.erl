@@ -5,6 +5,7 @@
 -include("../include/wsl.hrl").
 -include("pb_client.hrl").
 -include("pb_stream.hrl").
+-define(URL, "wss://stream.cryptowat.ch").
 
 %% API exports
 -export([start_link/0,
@@ -23,10 +24,12 @@
 %%====================================================================
 %% API functions
 %%====================================================================
+
+
 start_link() -> 
     crypto:start(),
     ssl:start(),
-    websocket_client:start_link(?SURL, ?MODULE, []).
+    websocket_client:start_link(?URL, ?MODULE, []).
 
 subscribe(S) -> {ok, S}.
 unsubscribe(S) -> {ok, S}.
@@ -55,7 +58,6 @@ websocket_handle({binary,<<1>>}, _Conn, State) ->
 websocket_handle(Msg, _Conn, authorizing) ->
     {binary, M} = Msg,
     {_, {_, {_, Res}}}  = pb_stream:decode_msg(M, 'ProtobufStream.StreamMessage'),
-    io:format("auth: ~p~n", [Res]),
     case Res of
         'AUTHENTICATED' ->
             {ok, authenticated};
@@ -65,23 +67,33 @@ websocket_handle(Msg, _Conn, authorizing) ->
 
 websocket_handle({binary, Msg}, _ConnState, State) ->
     %io:format("Received msg ~p ~p~n", [_T, Msg]),
-    {Type, M} = pb_stream:decode_msg(Msg, 'ProtobufStream.StreamMessage'),
-    case Type of 
-        
-        io:format("~p ~p~n", [_T, Msg]),
-        {ok, State}.
+    {_, {Kind, M}} = pb_stream:decode_msg(Msg, 'ProtobufStream.StreamMessage'),
+%    io:format("~p ~p ~n", [Kind, M]),
+    case Kind of 
+        subscriptionResult ->
+            handle_subs_result(M, State);
+        marketUpdate ->
+            handle_market_update(M,State)
+    end,        
+    {ok, State}.
 
 %%====================================================================
 %% Internal functions
 %%====================================================================
 authenticate() ->
-    {{api, Api}, {secret, Secret}} = get_creds(),
+    Api =  "02902WOKNKEJN01DV18Z",
+    Secret = "UIO/BJfSyRyGN/zfPdag9AVVzWRHxQ4mYime6FSo",
     Nonce = integer_to_list(erlang:system_time(millisecond) * 1000 * 1000),
     Token = base64:encode_to_string(crypto:hmac(sha512, base64:decode(Secret), "stream_access;access_key_id=" ++ Api ++ ";nonce=" ++ Nonce ++ ";")),
 
     Msg = #'ProtobufClient.APIAuthenticationMessage'{token=Token, nonce=Nonce, api_key=Api, subscriptions=["markets:65:trades"]},
     websocket_client:cast(self(), {text, pb_client:encode_msg(#'ProtobufClient.ClientMessage'{body={apiAuthentication, Msg}})}).
 
+handle_market_update(Msg, State) ->
+    M = Msg#'ProtobufMarkets.MarketUpdateMessage'.'Update',
+    io:format("~p~n", [M]).
 
-
+handle_subs_result(M, State) ->
+    %io:format("~p~n", [M#'ProtobufStream.SubscriptionResult']).
+    io:format("~p~n", [M]).
 
