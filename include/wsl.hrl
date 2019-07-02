@@ -1,6 +1,26 @@
 %-ifndef(wsl_hrl).
 -define(wsl_hrl, true).
 
-%-define(SURL, "wss://stream.cryptowat.ch").
+-record(state, {status :: atom(), cbm :: module(), subscriptions :: [string()]}).
+-record(creds, {api :: string(), secret :: string()}).
 
-%-record
+-type subscription() :: [string()] | [].
+
+%-type subscriptionResult() ::
+
+-record(market, {
+    exchange_id =   0 :: non_neg_integer(),
+    pair_id     =   0 :: non_neg_integer(),
+    market_id   =   0 :: non_neg_integer()
+}).
+
+-record(trade, {
+    timestamp :: integer(),
+    price     :: float(),
+    vol       :: float()
+}).
+-type trade() ::  #trade{}.
+
+-record(tlist, {market :: #market{},
+    trades :: [trade()]
+}).

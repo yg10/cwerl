@@ -31,7 +31,7 @@ subscription(S) ->
 
 -spec subs([sub()]) -> [string()].
 subs(S) ->
-    lists:map(fun  subscribe:subscription/1, S).
+    lists:foreach(fun  subscribe:subscription/1, S).
 
 
 

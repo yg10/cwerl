@@ -12,7 +12,9 @@
 -include("../include/wsl.hrl").
 %% API
 -export([get_creds/0,
-        start/0]).
+    start/0,
+    subscriptionResult/1,
+    marketUpdate/1]).
 
 -behavior(wsl).
 %-spec get_creds() -> creds().
@@ -22,4 +24,12 @@ get_creds() ->
     {secret, "UIO/BJfSyRyGN/zfPdag9AVVzWRHxQ4mYime6FSo" }}.
 
 start() ->
-    wsl:start_link([{?MODULE, ["markets:65:trades"]}]).
+    Pid = wsl:start_link([{?MODULE, ["markets:*:trades"]}]).
+
+subscriptionResult(S) ->
+    io:format("Suscribed: ~p~n", [S]).
+
+marketUpdate(S) ->
+    T = S#tlist.trades,
+    io:format("~p~n", [S#tlist.market]),
+    lists:foreach(fun(X) ->  io:format("~p~n", [X#trade{}]) end, T).
