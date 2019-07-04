@@ -93,22 +93,25 @@ websocket_handle({binary, Msg}, _Conn, {authorizing, State})  ->
        'AUTHENTICATED' ->
            {ok, {connected, State}};
        E ->
+            io:format("~p~n", [E]),
            {close, <<>>, E}
     end;
 
 %% Srream message
 websocket_handle({binary, Msg}, _Conn, State) ->
     {Tag, M} = pb_stream:decode_msg(Msg, 'ProtobufStream.StreamMessage'),
-    T = element(1, M),
-    {_, {Mod, _}} = State,
-    case erlang:function_exported(Mod, T, 1) of
-        false ->
-            io:format("~p~n", [M]),
-            {ok, State};
-        true ->
-            {T1, M1} = M,
-            Mod:T(message:in_msg(T1, M1)),
-            {ok, State}
+    case M of
+        undefined -> {ok, State};
+        {T, B} ->
+        {_, {Mod, _}} = State,
+        case erlang:function_exported(Mod, T, 1) of
+            false ->
+                {ok, State};
+            true ->
+                {T1, M1} = M,
+                Mod:T(message:in_msg(T1, M1)),
+                {ok, State}
+        end
     end;
 
 websocket_handle(M, _C, S) ->
